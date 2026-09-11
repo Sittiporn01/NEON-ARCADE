@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON ARCADE — ศูนย์รวมเกม</title>
+<style>
+  :root{
+    --bg:#05060f;
+    --cyan:#00f0ff;
+    --magenta:#ff2d95;
+    --gold:#ffd23f;
+    --purple:#a855f7;
+    --green:#22ff88;
+    --card:#0b0e1f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{min-height:100%;background:var(--bg);color:#eaf6ff;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;overflow-x:hidden;}
+
+  /* ===== Animated Background ===== */
+  .bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  .orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.35;animation:float 14s ease-in-out infinite;}
+  .o1{width:420px;height:420px;background:var(--cyan);top:-120px;left:-100px;}
+  .o2{width:380px;height:380px;background:var(--magenta);bottom:-120px;right:-80px;animation-delay:-5s;}
+  .o3{width:300px;height:300px;background:var(--purple);top:40%;left:55%;animation-delay:-9s;}
+  .o4{width:260px;height:260px;background:var(--green);top:10%;right:20%;animation-delay:-12s;opacity:.2;}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(40px,-30px) scale(1.1);}}
+
+  .grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(rgba(0,240,255,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,240,255,.05) 1px,transparent 1px);
+    background-size:44px 44px;mask-image:radial-gradient(circle at 50% 40%,#000,transparent 75%);
+    animation:gridmove 20s linear infinite;}
+  @keyframes gridmove{0%{background-position:0 0;}100%{background-position:44px 44px;}}
+
+  .particles{position:fixed;inset:0;z-index:1;pointer-events:none;}
+  .particle{position:absolute;border-radius:50%;background:var(--cyan);
+    animation:rise linear infinite;opacity:0;}
+  @keyframes rise{
+    0%{transform:translateY(0) scale(1);opacity:0;}
+    10%{opacity:.7;}
+    90%{opacity:.3;}
+    100%{transform:translateY(-110vh) scale(.3);opacity:0;}
+  }
+
+  .cursor-glow{position:fixed;width:400px;height:400px;border-radius:50%;z-index:1;
+    pointer-events:none;background:radial-gradient(circle,rgba(0,240,255,.12),transparent 60%);
+    transform:translate(-50%,-50%);transition:opacity .3s;}
+
+  /* ===== Music toggle button ===== */
+  .music-btn{position:fixed;top:1.2rem;right:1.2rem;z-index:20;width:48px;height:48px;
+    border-radius:50%;border:2px solid var(--cyan);background:rgba(0,240,255,.08);
+    color:var(--cyan);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;transition:.3s;backdrop-filter:blur(6px);}
+  .music-btn:hover{background:var(--cyan);color:#04121a;box-shadow:0 0 25px var(--cyan);transform:scale(1.1);}
+  .music-btn.off{opacity:.5;border-color:#5f7688;color:#5f7688;background:rgba(95,118,136,.1);}
+  .music-btn.off:hover{background:#5f7688;color:#04121a;box-shadow:0 0 20px #5f7688;}
+
+  .wrap{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:3rem 1.5rem 5rem;}
+
+  header{text-align:center;margin-bottom:3.5rem;animation:fadeDown .8s ease both;}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-30px);}to{opacity:1;transform:translateY(0);}}
+
+  .logo{font-size:clamp(2.6rem,8vw,5rem);font-weight:900;letter-spacing:.06em;
+    background:linear-gradient(90deg,var(--cyan),var(--magenta),var(--gold),var(--cyan));
+    background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 20px rgba(0,240,255,.45));
+    animation:shine 5s linear infinite;}
+  @keyframes shine{0%{background-position:0% 50%;}100%{background-position:300% 50%;}}
+
+  .tagline{color:#8fa6b8;letter-spacing:.35em;font-size:.85rem;margin-top:.6rem;text-transform:uppercase;}
+  .divider{width:120px;height:2px;margin:1.4rem auto 0;background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+    animation:dividerPulse 2.5s ease-in-out infinite;}
+  @keyframes dividerPulse{0%,100%{width:120px;opacity:.6;}50%{width:200px;opacity:1;}}
+
+  .typing{display:inline-block;color:var(--gold);font-size:1.1rem;font-weight:600;
+    letter-spacing:.1em;margin-top:1rem;min-height:1.5em;}
+  .typing .cursor{display:inline-block;width:2px;height:1.1em;background:var(--gold);
+    margin-left:2px;vertical-align:-2px;animation:blink .8s step-end infinite;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .games{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.6rem;}
+
+  .card{position:relative;background:var(--card);border:1px solid rgba(0,240,255,.15);
+    border-radius:20px;padding:1.8rem;cursor:pointer;overflow:hidden;text-decoration:none;
+    color:inherit;transition:transform .3s,box-shadow .3s,border-color .3s;display:block;
+    transform-style:preserve-3d;will-change:transform;
+    animation:cardIn .6s ease both;}
+  .card:nth-child(1){animation-delay:.1s;}
+  .card:nth-child(2){animation-delay:.2s;}
+  .card:nth-child(3){animation-delay:.3s;}
+  .card:nth-child(4){animation-delay:.4s;}
+  @keyframes cardIn{from{opacity:0;transform:translateY(40px) scale(.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+  .card:hover{transform:translateY(-8px);border-color:var(--cyan);
+    box-shadow:0 20px 50px rgba(0,240,255,.18);}
+
+  .card .glowline{position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--cyan),var(--magenta));opacity:0;transition:.3s;}
+  .card:hover .glowline{opacity:1;}
+
+  .card .shine{position:absolute;top:0;left:-100%;width:60%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.08),transparent);
+    transform:skewX(-20deg);transition:left .6s ease;pointer-events:none;}
+  .card:hover .shine{left:150%;}
+
+  .card .icon{font-size:3rem;margin-bottom:1rem;display:inline-block;
+    filter:drop-shadow(0 0 12px rgba(0,240,255,.5));
+    transition:transform .4s ease;}
+  .card:hover .icon{transform:scale(1.2) rotate(-8deg);}
+
+  .card h2{font-size:1.5rem;font-weight:800;letter-spacing:.04em;margin-bottom:.5rem;}
+  .card p{color:#8fa6b8;font-size:.92rem;line-height:1.5;margin-bottom:1.2rem;}
+  .card .play{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;letter-spacing:.1em;
+    color:var(--cyan);font-size:.85rem;text-transform:uppercase;}
+  .card .play .arrow{transition:transform .3s;}
+  .card:hover .play .arrow{transform:translateX(6px);}
+
+  .card .badge{position:absolute;top:1rem;right:1rem;font-size:.65rem;font-weight:700;
+    letter-spacing:.1em;padding:.3rem .7rem;border-radius:999px;text-transform:uppercase;
+    animation:badgePulse 2s ease-in-out infinite;}
+  @keyframes badgePulse{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+  .badge.hot{background:rgba(255,45,149,.15);color:var(--magenta);border:1px solid rgba(255,45,149,.4);}
+  .badge.new{background:rgba(34,255,136,.12);color:var(--green);border:1px solid rgba(34,255,136,.4);}
+
+  footer{text-align:center;margin-top:4rem;color:#4f6478;font-size:.8rem;letter-spacing:.1em;
+    animation:fadeUp 1s ease .6s both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+  @media (max-width:600px){
+    .games{grid-template-columns:1fr;}
+    .cursor-glow{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="bg">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div>
+</div>
+<div class="grid"></div>
+<div class="particles" id="particles"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<button class="music-btn" id="musicBtn" title="เปิด/ปิดเพลง">🔊</button>
+
+<div class="wrap">
+  <header>
+    <div class="logo">NEON ARCADE</div>
+    <div class="tagline">ศูนย์รวมเกมสุดมันส์ · เล่นได้ไม่รู้เบื่อ</div>
+    <div class="divider"></div>
+    <div class="typing" id="typing"></div>
+  </header>
+
+  <div class="games">
+
+    <a class="card" href="neon-dash.html">
+      <span class="glowline"></span>
+      <span class="shine"></span>
+      <span class="badge hot">🔥 ยอดนิยม</span>
+      <div class="icon">💠</div>
+      <h2>NEON DASH</h2>
+      <p>หลบหลีกสิ่งกีดขวาง เก็บอัญมณี ทำคอมโบ พร้อมพาวเวอร์อัป 4 ชนิด ความเร็วเพิ่มขึ้นเรื่อย ๆ</p>
+      <span class="play">เล่นเลย <span class="arrow">→</span></span>
+    </a>
+
+    <a class="card" href="space-blaster.html">
+      <span class="glowline"></span>
+      <span class="shine"></span>
+      <span class="badge new">✨ ใหม่</span>
+      <div class="icon">🚀</div>
+      <h2>SPACE BLASTER</h2>
+      <p>ยิงศัตรู เลเวลอัป สู้บอส พร้อมอาวุธอัปเกรด 4 ระดับ</p>
+      <span class="play">เล่นเลย <span class="arrow">→</span></span>
+    </a>
+
+    <a class="card" href="neon-snake.html">
+      <span class="glowline"></span>
+      <span class="shine"></span>
+      <span class="badge new">✨ ใหม่</span>
+      <div class="icon">🐍</div>
+      <h2>NEON SNAKE</h2>
+      <p>งูกินอัญมณีสไตล์นีออน พร้อมพาวเวอร์อัปและเลเวลอัป</p>
+      <span class="play">เล่นเลย <span class="arrow">→</span></span>
+    </a>
+
+    <a class="card" href="puzzle-2048.html">
+      <span class="glowline"></span>
+      <span class="shine"></span>
+      <span class="badge new">✨ ใหม่</span>
+      <div class="icon">🧩</div>
+      <h2>PUZZLE 2048</h2>
+      <p>เกมตัวเลขฝึกสมอง ภาพสวยระดับพรีเมียม พร้อมย้อนกลับได้</p>
+      <span class="play">เล่นเลย <span class="arrow">→</span></span>
+    </a>
+
+    <a class="card" href="koala-run.html">
+      <span class="glowline"></span>
+      <span class="shine"></span>
+      <span class="badge new">✨ ใหม่</span>
+      <div class="icon">🐨</div>
+      <h2>KOALA RUN</h2>
+      <p>วิ่งไม่รู้จบกับโคอาล่าน่ารัก กระโดด 2 จังหวะ สไลด์ เก็บใบยูคาลิปตัส ผ่าน 3 ด่านเปลี่ยนธีม</p>
+      <span class="play">เล่นเลย <span class="arrow">→</span></span>
+    </a>
+
+  </div>
+
+  <footer>NEON ARCADE · เล่นบนเบราว์เซอร์ ไม่ต้องติดตั้ง</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ===== Floating particles =====
+  const particlesEl = document.getElementById('particles');
+  const colors = ['#00f0ff','#ff2d95','#ffd23f','#a855f7','#22ff88'];
+  function spawnParticle(){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*4 + 2;
+    p.style.width = size+'px';
+    p.style.height = size+'px';
+    p.style.left = Math.random()*100+'%';
+    p.style.bottom = '-10px';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.boxShadow = '0 0 '+size*3+'px '+p.style.background;
+    p.style.animationDuration = (Math.random()*8 + 6)+'s';
+    particlesEl.appendChild(p);
+    setTimeout(()=>p.remove(), 15000);
+  }
+  for(let i=0;i<25;i++) setTimeout(spawnParticle, i*200);
+  setInterval(spawnParticle, 500);
+
+  // ===== Cursor glow =====
+  const glow = document.getElementById('cursorGlow');
+  let glowX=0, glowY=0, targetX=0, targetY=0;
+  document.addEventListener('mousemove', e=>{
+    targetX = e.clientX; targetY = e.clientY;
+    glow.style.opacity = 1;
+  });
+  document.addEventListener('mouseleave', ()=>glow.style.opacity=0);
+  function animateGlow(){
+    glowX += (targetX-glowX)*0.12;
+    glowY += (targetY-glowY)*0.12;
+    glow.style.left = glowX+'px';
+    glow.style.top = glowY+'px';
+    requestAnimationFrame(animateGlow);
+  }
+  animateGlow();
+
+  // ===== 3D tilt =====
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card=>{
+    card.addEventListener('mousemove', e=>{
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left)/rect.width - 0.5;
+      const y = (e.clientY - rect.top)/rect.height - 0.5;
+      card.style.transform = `translateY(-8px) rotateX(${-y*8}deg) rotateY(${x*8}deg)`;
+    });
+    card.addEventListener('mouseleave', ()=>{
+      card.style.transform = '';
+    });
+  });
+
+  // ===== Typing effect =====
+  const phrases = [
+    '🎮 เลือกเกมที่คุณชื่นชอบ...',
+    '🔥 ทำลายสถิติของคุณเอง!',
+    '✨ 4 เกมสุดมันส์รอคุณอยู่',
+    '🚀 พร้อมเล่นหรือยัง?',
+  ];
+  const typingEl = document.getElementById('typing');
+  let phraseIdx=0, charIdx=0, deleting=false;
+  function type(){
+    const phrase = phrases[phraseIdx];
+    if(!deleting){
+      charIdx++;
+      typingEl.innerHTML = phrase.slice(0,charIdx) + '<span class="cursor"></span>';
+      if(charIdx === phrase.length){ deleting = true; setTimeout(type, 2000); return; }
+    } else {
+      charIdx--;
+      typingEl.innerHTML = phrase.slice(0,charIdx) + '<span class="cursor"></span>';
+      if(charIdx === 0){ deleting = false; phraseIdx = (phraseIdx+1)%phrases.length; }
+    }
+    setTimeout(type, deleting?40:80);
+  }
+  type();
+
+  // ===== Audio Engine =====
+  let AC = null;
+  function audio(){
+    if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state === 'suspended') AC.resume();
+    return AC;
+  }
+
+  // master gain for music
+  let musicGain = null;
+  let musicOn = false;
+  let musicTimer = null;
+  let step = 0;
+
+  // ---- Background music: ambient synth loop ----
+  // chord progression (Am - F - C - G) in a dreamy synthwave style
+  const chords = [
+    [220.00, 261.63, 329.63, 440.00], // Am
+    [174.61, 220.00, 261.63, 349.23], // F
+    [130.81, 196.00, 261.63, 329.63], // C
+    [196.00, 246.94, 293.66, 392.00], // G
+  ];
+  const bassNotes = [110.00, 87.31, 65.41, 98.00]; // A2 F2 C2 G2
+  const melody = [440, 523.25, 659.25, 523.25, 440, 392, 329.63, 392]; // pentatonic-ish
+
+  function playNote(freq, time, dur, type, vol, dest){
+    const o = AC.createOscillator();
+    const g = AC.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, time);
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(vol, time + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    o.connect(g); g.connect(dest);
+    o.start(time); o.stop(time + dur + 0.05);
+  }
+
+  function scheduleStep(t, stepIdx){
+    const chord = chords[stepIdx % 4];
+    const bass = bassNotes[stepIdx % 4];
+    const beatDur = 0.5; // 120 BPM, eighth notes
+
+    // bass (every beat)
+    playNote(bass, t, beatDur*2, 'triangle', 0.12, musicGain);
+    playNote(bass*2, t, beatDur*2, 'sine', 0.05, musicGain);
+
+    // pad chord (sustained)
+    chord.forEach(f=>{
+      playNote(f, t, beatDur*2, 'sine', 0.04, musicGain);
+    });
+
+    // arpeggio sparkle
+    const arp = chord[stepIdx % chord.length];
+    playNote(arp*2, t, beatDur*0.8, 'triangle', 0.06, musicGain);
+
+    // melody (every 2 steps)
+    if(stepIdx % 2 === 0){
+      const m = melody[(stepIdx/2) % melody.length];
+      playNote(m, t, beatDur*1.5, 'sine', 0.07, musicGain);
+    }
+  }
+
+  function startMusic(){
+    if(musicOn) return;
+    const a = audio();
+    musicGain = a.createGain();
+    musicGain.gain.setValueAtTime(0.5, a.currentTime);
+    musicGain.connect(a.destination);
+    musicOn = true;
+    step = 0;
+    // schedule ahead
+    const lookahead = 0.1;
+    const beatDur = 0.5;
+    let nextTime = a.currentTime + 0.05;
+    musicTimer = setInterval(()=>{
+      while(nextTime < a.currentTime + lookahead){
+        scheduleStep(nextTime, step);
+        nextTime += beatDur;
+        step++;
+      }
+    }, 50);
+  }
+
+  function stopMusic(){
+    if(!musicOn) return;
+    clearInterval(musicTimer);
+    musicTimer = null;
+    if(musicGain){
+      musicGain.gain.setTargetAtTime(0, AC.currentTime, 0.1);
+      setTimeout(()=>{ if(musicGain) musicGain.disconnect(); musicGain=null; }, 500);
+    }
+    musicOn = false;
+  }
+
+  // ---- Hover sound effect ----
+  function hoverSound(){
+    if(!musicOn) return; // only if audio enabled
+    const a = audio();
+    const t = a.currentTime;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(600, t);
+    o.frequency.exponentialRampToValueAtTime(900, t + 0.08);
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + 0.15);
+  }
+
+  function clickSound(){
+    const a = audio();
+    const t = a.currentTime;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(500, t);
+    o.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+    g.gain.setValueAtTime(0.1, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + 0.18);
+  }
+
+  // ---- Music toggle button ----
+  const musicBtn = document.getElementById('musicBtn');
+  musicBtn.addEventListener('click', ()=>{
+    if(musicOn){
+      stopMusic();
+      musicBtn.textContent = '🔇';
+      musicBtn.classList.add('off');
+    } else {
+      startMusic();
+      musicBtn.textContent = '🔊';
+      musicBtn.classList.remove('off');
+    }
+  });
+
+  // ---- Attach hover/click sounds to cards ----
+  cards.forEach(card=>{
+    card.addEventListener('mouseenter', hoverSound);
+    card.addEventListener('click', clickSound);
+  });
+
+  // ---- Auto-start music on first user interaction ----
+  function autoStart(){
+    if(!musicOn){
+      startMusic();
+      musicBtn.textContent = '🔊';
+      musicBtn.classList.remove('off');
+    }
+    document.removeEventListener('click', autoStart);
+    document.removeEventListener('keydown', autoStart);
+  }
+  document.addEventListener('click', autoStart);
+  document.addEventListener('keydown', autoStart);
+})();
+</script>
+</body>
+</html>
