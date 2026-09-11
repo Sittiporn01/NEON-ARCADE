@@ -102,6 +102,10 @@
   .challenge .ck{color:var(--green);}
 </style>
 </head>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
 <body>
 <div class="bg"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
 <canvas id="game"></canvas>
@@ -125,6 +129,7 @@
   <button class="btn" id="startBtn">เริ่มเล่น</button>
   <button class="btn back" id="collectBtn">🎨 ชุด & สัตว์เลี้ยง</button>
   <div class="daily" id="dailyBox"></div>
+  <div class="daily" id="leaderboardBox"></div>
   <button class="btn back" id="backBtn">← กลับเมนู</button>
   <div class="sub" style="margin-top:1rem;font-size:.75rem;color:#5f7688;">
     👆 แตะ/Space = กระโดด (2 ครั้ง) · 👇 ปัดลง/↓ = สไลด์
@@ -143,6 +148,12 @@
   <div class="sub" id="finalScore" style="font-size:1.4rem;color:#fff;"></div>
   <div class="sub" id="newBest" style="color:var(--gold);"></div>
   <div class="sub" id="encourage" style="color:var(--cyan);margin-top:.6rem;font-size:1.1rem;"></div>
+  <div class="sub hidden" id="nameEntry" style="margin-top:.8rem;">
+    <input type="text" id="nameInput" maxlength="12" placeholder="ใส่ชื่อของคุณ"
+      style="background:rgba(255,255,255,.06);border:1px solid rgba(0,240,255,.3);border-radius:10px;
+      padding:.5rem 1rem;color:#fff;font-size:1rem;text-align:center;outline:none;width:200px;">
+    <button class="btn small" id="saveScoreBtn" style="margin-left:.5rem;">บันทึก</button>
+  </div>
   <button class="btn" id="restartBtn">เล่นอีกครั้ง</button>
   <button class="btn back" id="backBtn2">← กลับเมนู</button>
 </div>
@@ -170,8 +181,9 @@
   const ctx = canvas.getContext('2d');
   let W=0,H=0,DPR=1;
 
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window);
   function resize(){
-    DPR = Math.min(window.devicePixelRatio||1, 2);
+    DPR = Math.min(window.devicePixelRatio||1, isMobile ? 1.5 : 2);
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = W*DPR; canvas.height = H*DPR;
     canvas.style.width = W+'px'; canvas.style.height = H+'px';
@@ -207,8 +219,11 @@
     stage:()=>{beep(440,.1,'sine',.14,200); setTimeout(()=>beep(660,.12,'sine',.14,200),100); setTimeout(()=>beep(880,.15,'sine',.14,200),200);},
     over:()=>beep(400,.4,'sawtooth',.18,-300),
     start:()=>beep(440,.12,'sine',.15,200),
-    unlock:()=>{beep(523,.12,'sine',.15); setTimeout(()=>beep(659,.12,'sine',.15),100); setTimeout(()=>beep(784,.2,'sine',.15),200);},
-  };
+    unlock:()=>{
+      beep(523,.12,'sine',.15); setTimeout(()=>beep(659,.12,'sine',.15),100);
+      setTimeout(()=>beep(784,.12,'sine',.15),200); setTimeout(()=>beep(1047,.25,'sine',.18),300);
+      setTimeout(()=>beep(1319,.35,'triangle',.15),420);
+    },  };
 
   // ---------- Persistence ----------
   function load(key, def){ try{ const v=localStorage.getItem(key); return v===null?def:JSON.parse(v); }catch(e){ return def; } }
@@ -222,22 +237,118 @@
     {id:'ice', name:'น้ำแข็ง', icon:'❄️', body:'#a0c8e8', head:'#b0d8f0', belly:'#e0f0ff', ear:'#80b0d0', cost:300, desc:'ใบไม้ 300'},
     {id:'royal', name:'ราชา', icon:'👑', body:'#c8a020', head:'#d8b030', belly:'#f0e0a0', ear:'#e0c060', cost:500, desc:'ใบไม้ 500'},
     {id:'rainbow', name:'สายรุ้ง', icon:'🌈', body:'rainbow', head:'rainbow', belly:'#fff', ear:'#ffb6c1', cost:800, desc:'ใบไม้ 800'},
+    {id:'panda', name:'แพนด้า', icon:'🐼', body:'#e8e8e8', head:'#f0f0f0', belly:'#ffffff', ear:'#2a2a2a', cost:200, desc:'ใบไม้ 200'},
+    {id:'strawberry', name:'สตรอว์เบอร์รี', icon:'🍓', body:'#e04050', head:'#f05060', belly:'#ffd0d8', ear:'#ff8090', cost:250, desc:'ใบไม้ 250'},
+    {id:'ninja', name:'นินจา', icon:'🥷', body:'#2a2a3a', head:'#3a3a4a', belly:'#5a5a6a', ear:'#1a1a2a', cost:400, desc:'ใบไม้ 400'},
+    {id:'astronaut', name:'นักบินอวกาศ', icon:'👨‍🚀', body:'#d0d8e0', head:'#e0e8f0', belly:'#f0f4f8', ear:'#a0b0c0', cost:600, desc:'ใบไม้ 600'},
+    {id:'golden', name:'ทองคำ', icon:'✨', body:'#d8b020', head:'#e8c030', belly:'#f8e8a0', ear:'#c8a010', cost:1000, desc:'ใบไม้ 1000'},
+    {id:'galaxy', name:'กาแล็กซี', icon:'🌌', body:'galaxy', head:'galaxy', belly:'#c0c0ff', ear:'#a0a0ff', cost:1200, desc:'ใบไม้ 1200'},
   ];
   const PETS = [
     {id:'bird', name:'นกน้อย', icon:'🐦', bonus:'score', val:1.1, cost:100, desc:'คะแนน +10%'},
     {id:'butterfly', name:'ผีเสื้อ', icon:'🦋', bonus:'magnet', val:1, cost:200, desc:'แม่เหล็กดูดใบไม้'},
     {id:'turtle', name:'เต่า', icon:'🐢', bonus:'life', val:1, cost:400, desc:'+1 ชีวิต'},
     {id:'rabbit', name:'กระต่าย', icon:'🐰', bonus:'boost', val:1.5, cost:600, desc:'บูสต์นานขึ้น'},
+    {id:'cat', name:'แมวเหมียว', icon:'🐱', bonus:'score', val:1.2, cost:500, desc:'คะแนน +20%'},
+    {id:'dragon', name:'มังกรน้อย', icon:'🐉', bonus:'boost', val:2, cost:800, desc:'บูสต์นาน 2 เท่า'},
+    {id:'panda', name:'แพนด้าน้อย', icon:'🐼', bonus:'life', val:2, cost:900, desc:'+2 ชีวิต'},
+    {id:'unicorn', name:'ยูนิคอร์น', icon:'🦄', bonus:'magnet', val:2, cost:1000, desc:'แม่เหล็กแรง 2 เท่า'},
   ];
-
   let leaves = load('koalarun_leaves', 0);
   let ownedCostumes = load('koalarun_costumes', ['classic']);
   let ownedPets = load('koalarun_pets', []);
   let selCostume = load('koalarun_selcostume', 'classic');
   let selPet = load('koalarun_selpet', null);
+  let leaderboard = load('koalarun_leaderboard', []);
+
+    // ===== Firebase Leaderboard =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyDNJUP1o6CDsBVhT09B_7Fjy7ZQRNmESpI",
+    authDomain: "koala-run.firebaseapp.com",
+    databaseURL: "https://koala-run-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "koala-run",
+    storageBucket: "koala-run.firebasestorage.app",
+    messagingSenderId: "372585020333",
+    appId: "1:372585020333:web:3d5650365d0f37bbc77f24"
+  };
+  let fb = null, fbDb = null;
+  try{
+    fb = firebase.initializeApp(firebaseConfig);
+    fbDb = firebase.database();
+  }catch(e){ console.warn('Firebase init failed:', e); }
+
+  function addToBoard(name, score){
+    if(!fbDb){ // fallback to local
+      leaderboard.push({name:name||'ไม่ระบุ', score:Math.floor(score)});
+      leaderboard.sort((a,b)=>b.score-a.score);
+      leaderboard = leaderboard.slice(0,10);
+      save('koalarun_leaderboard', leaderboard);
+      renderLeaderboard();
+      return;
+    }
+    fbDb.ref('scores').push({
+      name: name||'ไม่ระบุ',
+      score: Math.floor(score),
+      ts: Date.now()
+    }).then(()=>{ renderLeaderboard(); });
+  }
+
+  function renderLeaderboard(){
+    const box=document.getElementById('leaderboardBox');
+    if(!box) return;
+    if(!fbDb){ // local fallback
+      let html='<h3>🏆 กระดานจัดอันดับ</h3>';
+      if(leaderboard.length===0){ html+='<div class="challenge" style="justify-content:center;">ยังไม่มีสถิติ</div>'; }
+      else leaderboard.forEach((e,i)=>{
+        const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+        html+='<div class="challenge"><span>'+medal+'</span><span style="flex:1;">'+e.name+'</span><span style="color:var(--cyan);font-weight:700;">'+e.score+'</span></div>';
+      });
+      box.innerHTML=html; return;
+    }
+    // online: fetch top 10
+    box.innerHTML='<h3>🏆 กระดานจัดอันดับ</h3><div class="challenge" style="justify-content:center;">กำลังโหลด...</div>';
+    fbDb.ref('scores').orderByChild('score').limitToLast(10).once('value').then(snap=>{
+      const arr=[];
+      snap.forEach(child=>{ arr.push(child.val()); });
+      arr.sort((a,b)=>b.score-a.score);
+      let html='<h3>🏆 กระดานจัดอันดับ</h3>';
+      if(arr.length===0){ html+='<div class="challenge" style="justify-content:center;">ยังไม่มีสถิติ — เป็นคนแรกเลย!</div>'; }
+      else arr.forEach((e,i)=>{
+        const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+        html+='<div class="challenge"><span>'+medal+'</span><span style="flex:1;">'+e.name+'</span><span style="color:var(--cyan);font-weight:700;">'+e.score+'</span></div>';
+      });
+      box.innerHTML=html;
+    }).catch(err=>{ box.innerHTML='<h3>🏆 กระดานจัดอันดับ</h3><div class="challenge" style="justify-content:center;">โหลดไม่สำเร็จ</div>'; });
+  }
 
   function getCostume(id){ return COSTUMES.find(c=>c.id===id) || COSTUMES[0]; }
   function getPet(id){ return PETS.find(p=>p.id===id) || null; }
+
+    function qualifiesForBoard(score){
+    return score > 0; // ออนไลน์รับทุกคะแนน (หรือตั้งเกณฑ์ขั้นต่ำ เช่น > 100)
+  }
+  function addToBoard(name, score){
+    leaderboard.push({name:name||'ไม่ระบุ', score:Math.floor(score)});
+    leaderboard.sort((a,b)=>b.score-a.score);
+    leaderboard = leaderboard.slice(0,10);
+    save('koalarun_leaderboard', leaderboard);
+  }
+  function renderLeaderboard(){
+    const box=document.getElementById('leaderboardBox');
+    if(!box) return;
+    let html='<h3>🏆 กระดานจัดอันดับ</h3>';
+    if(leaderboard.length===0){
+      html+='<div class="challenge" style="justify-content:center;">ยังไม่มีสถิติ — เป็นคนแรกเลย!</div>';
+    } else {
+      leaderboard.forEach((e,i)=>{
+        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+        html+='<div class="challenge"><span>'+medal+'</span>'+
+          '<span style="flex:1;">'+e.name+'</span>'+
+          '<span style="color:var(--cyan);font-weight:700;">'+e.score+'</span></div>';
+      });
+    }
+    box.innerHTML=html;
+  }
 
   // ---------- Daily challenges ----------
   const DAILY = [
@@ -271,7 +382,8 @@
 
   function initStars(){
     stars=[];
-    for(let i=0;i<80;i++) stars.push({x:Math.random()*W, y:Math.random()*H*0.7, s:Math.random()*1.6+0.4, v:Math.random()*0.4+0.1, tw:Math.random()*Math.PI*2});
+    const n = isMobile ? 40 : 80;
+    for(let i=0;i<n;i++) stars.push({x:Math.random()*W, y:Math.random()*H*0.7, s:Math.random()*1.6+0.4, v:Math.random()*0.4+0.1, tw:Math.random()*Math.PI*2});
   }
   function initBgTrees(){
     bgTrees=[];
@@ -312,14 +424,14 @@
       obstacles.push({x:W+50, y:g-h-rand(60,110), w, h, type:'air', color:'#7a4a2a'});
     }
   }
-  function spawnLeaf(){
+    function spawnLeaf(){
     const g=GROUND();
-    leavesArr.push({x:W+30, y:g-rand(40,140), r:10, phase:Math.random()*Math.PI*2});
+    leavesArr.push({x:W+30, y:g-rand(20,130), r:10, phase:Math.random()*Math.PI*2});
   }
   function spawnPower(){
     const types=['boost','shield','magnet'];
     const t=types[Math.floor(Math.random()*types.length)];
-    powers.push({x:W+40, y:GROUND()-rand(60,120), r:16, type:t});
+    powers.push({x:W+40, y:GROUND()-rand(20,90), r:16, type:t});
   }
 
   // ---------- Game flow ----------
@@ -362,9 +474,22 @@
     document.getElementById('gameOverScreen').classList.remove('hidden');
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('pauseBtn').classList.add('hidden');
+    // leaderboard
+    const nameEntry=document.getElementById('nameEntry');
+    if(qualifiesForBoard(S.score)){
+      nameEntry.classList.remove('hidden');
+      document.getElementById('saveScoreBtn').onclick=()=>{
+        addToBoard(document.getElementById('nameInput').value, S.score);
+        nameEntry.classList.add('hidden');
+        renderLeaderboard();
+      };
+    } else {
+      nameEntry.classList.add('hidden');
+    }
     // update daily progress
     updateDaily();
     renderDaily();
+    renderLeaderboard();
   }
   function pause(){
     if(S.state!=='play') return;
@@ -424,14 +549,14 @@
   });
 
   let touchStart=null;
-  canvas.addEventListener('touchstart', e=>{ touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+  canvas.addEventListener('touchstart', e=>{ touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}; }, {passive:true});
   canvas.addEventListener('touchend', e=>{
     if(!touchStart) return;
     const dy=e.changedTouches[0].clientY-touchStart.y;
     if(Math.abs(dy)>40 && dy>0) slide();
     else jump();
     touchStart=null;
-  });
+  }, {passive:true});
   canvas.addEventListener('click', ()=>jump());
 
   // ---------- Update ----------
@@ -518,13 +643,14 @@
         const d=Math.hypot(player.x-l.x,player.y-l.y);
         if(d<150){ l.x+=(player.x-l.x)*8*dt; l.y+=(player.y-l.y)*8*dt; }
       }
-      if(Math.hypot(player.x-l.x,player.y-l.y)<30){
+      if(Math.hypot(player.x-l.x,player.y-l.y)<55){
         S.combo++; S.maxCombo=Math.max(S.maxCombo,S.combo);
         const gain=20*(1+S.combo*0.1);
         S.score+=gain;
         S.runLeaves++; leaves++;
         if(S.combo>1) sfx.combo(Math.min(S.combo,10)); else sfx.leaf();
         spawnParticles(l.x,l.y,'#22ff88',8,3);
+        addPopup('+'+Math.floor(gain), '#22ff88');
         // combo milestone effect
         if(S.combo%5===0){
           addPopup('COMBO x'+S.combo+'!', '#ffd23f');
@@ -540,12 +666,23 @@
       const p=powers[i];
       p.x -= S.speed*dt;
       if(p.x<-30){ powers.splice(i,1); continue; }
-      if(Math.hypot(player.x-p.x,player.y-p.y)<35){
+      if(Math.hypot(player.x-p.x,player.y-p.y)<60){
         sfx.power();
         spawnParticles(p.x,p.y,'#a855f7',18,5);
-        if(p.type==='boost'){ const pet=getPet(selPet); S.boostT = (pet && pet.bonus==='boost') ? 4*pet.val : 4; sfx.boost(); }
-        if(p.type==='shield'){ S.shield=true; }
-        if(p.type==='magnet'){ S.magnetT=6; }
+        if(p.type==='boost'){
+          const pet=getPet(selPet);
+          S.boostT = (pet && pet.bonus==='boost') ? 4*pet.val : 4;
+          sfx.boost();
+          addPopup('⚡ บูสต์!', '#ffd23f');
+        }
+        if(p.type==='shield'){
+          S.shield=true;
+          addPopup('🛡 โล่!', '#00f0ff');
+        }
+        if(p.type==='magnet'){
+          S.magnetT=6;
+          addPopup('🧲 แม่เหล็ก!', '#a855f7');
+        }
         powers.splice(i,1);
       }
     }
@@ -663,8 +800,12 @@
     ctx.translate(0,bob);
     if(rot) ctx.rotate(rot);
 
-    const bodyCol = c.body==='rainbow' ? `hsl(${(S.time*120)%360},80%,65%)` : c.body;
-    const headCol = c.head==='rainbow' ? `hsl(${(S.time*120+40)%360},80%,70%)` : c.head;
+    const bodyCol = c.body==='rainbow' ? `hsl(${(S.time*120)%360},80%,65%)`
+      : c.body==='galaxy' ? `hsl(${(S.time*60+220)%360},70%,55%)`
+      : c.body;
+    const headCol = c.head==='rainbow' ? `hsl(${(S.time*120+40)%360},80%,70%)`
+      : c.head==='galaxy' ? `hsl(${(S.time*60+260)%360},70%,65%)`
+      : c.head;
 
     if(sliding){
       ctx.rotate(-0.3);
@@ -951,6 +1092,7 @@
 
   // init
   renderDaily();
+  renderLeaderboard();
 })();
 </script>
 </body>
