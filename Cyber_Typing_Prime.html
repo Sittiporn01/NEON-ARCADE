@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER TYPER PRIME - High Production Typing Experience</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Prompt:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600;800&display=swap');
+
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Prompt', 'Orbitron', sans-serif;
+            background-color: #050811;
+            color: #00f0ff;
+            overflow: hidden;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Neon Glow Utility Effects */
+        .glow-cyan {
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+        }
+        .glow-magenta {
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.7), 0 0 20px rgba(255, 0, 127, 0.4);
+        }
+        .glow-gold {
+            text-shadow: 0 0 10px rgba(255, 200, 0, 0.7), 0 0 20px rgba(255, 200, 0, 0.4);
+        }
+
+        .box-glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 15px rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.5);
+        }
+        .box-glow-magenta {
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.3), inset 0 0 15px rgba(255, 0, 127, 0.1);
+            border: 1px solid rgba(255, 0, 127, 0.5);
+        }
+
+        /* Scanline Overlay */
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.3) 50%,
+                rgba(0, 0, 0, 0.3)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080d1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00f0ff;
+            border-radius: 3px;
+        }
+
+        /* Animations */
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.03); }
+        }
+        .animate-pulse-fast {
+            animation: pulse-fast 1.2s infinite ease-in-out;
+        }
+
+        /* Screen Shake Animation */
+        .shake {
+            animation: shake-anim 0.25s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake-anim {
+            10%, 90% { transform: translate3d(-2px, 1px, 0); }
+            20%, 80% { transform: translate3d(3px, -2px, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 3px, 0); }
+            40%, 60% { transform: translate3d(4px, -1px, 0); }
+        }
+
+        /* Laser Line animation */
+        .defense-line {
+            background: linear-gradient(90deg, rgba(255,0,127,0) 0%, rgba(255,0,127,0.8) 50%, rgba(255,0,127,0) 100%);
+            box-shadow: 0 0 15px #ff007f, 0 0 30px #ff007f;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen relative overflow-hidden flex flex-col justify-between">
+
+    <!-- Background Canvas for Particles, Matrix Warp, Starfields and Laser Effects -->
+    <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+
+    <!-- CRT Scanline Effect Overlay -->
+    <div class="scanline absolute inset-0 z-10 pointer-events-none opacity-40"></div>
+
+    <!-- MAIN UI CONTAINER -->
+    <div id="uiContainer" class="relative z-20 h-full flex flex-col justify-between p-4 md:p-6 max-w-7xl mx-auto w-full">
+
+        <!-- TOP HEADER BAR -->
+        <header class="flex justify-between items-center bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-cyan-500/30 box-glow-cyan">
+            <div class="flex items-center gap-3">
+                <div class="bg-cyan-500/20 p-2.5 rounded-xl border border-cyan-400 text-cyan-400">
+                    <i data-lucide="terminal" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black font-cyber tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-pink-500 glow-cyan">
+                        CYBER TYPER <span class="text-pink-500 text-xs px-2 py-0.5 rounded bg-pink-500/20 border border-pink-500/50 align-top">v2.0</span>
+                    </h1>
+                    <p class="text-xs text-cyan-400/70">NEXT-GEN NEON TYPING SYSTEM</p>
+                </div>
+            </div>
+
+            <!-- In-game HUD stats (Visible during active gameplay) -->
+            <div id="hudStats" class="hidden flex items-center gap-4 md:gap-8 font-mono">
+                <div class="text-center">
+                    <span class="text-xs text-slate-400 block font-cyber">WPM</span>
+                    <span id="hudWpm" class="text-2xl font-bold text-cyan-400 glow-cyan">0</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-slate-400 block font-cyber">ACCURACY</span>
+                    <span id="hudAccuracy" class="text-2xl font-bold text-emerald-400">100%</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-slate-400 block font-cyber">SCORE</span>
+                    <span id="hudScore" class="text-2xl font-bold text-yellow-400 glow-gold">0</span>
+                </div>
+                <div class="text-center relative">
+                    <span class="text-xs text-slate-400 block font-cyber">COMBO</span>
+                    <span id="hudCombo" class="text-2xl font-bold text-pink-500 glow-magenta">x0</span>
+                </div>
+            </div>
+
+            <!-- Audio & Settings Buttons -->
+            <div class="flex items-center gap-3">
+                <button id="btnSoundToggle" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded-xl border border-cyan-500/40 transition-all">
+                    <i data-lucide="volume-2" id="soundIcon" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- CENTER WORKSPACE / SCREENS CONTAINER -->
+        <main class="flex-1 my-4 relative flex items-center justify-center">
+
+            <!-- 1. MAIN MENU SCREEN -->
+            <div id="screenMenu" class="w-full max-w-4xl bg-slate-900/85 backdrop-blur-lg rounded-3xl p-6 md:p-8 border border-cyan-500/40 box-glow-cyan flex flex-col gap-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-3xl md:text-5xl font-extrabold font-cyber tracking-wide text-white glow-cyan">
+                        SELECT MISSION
+                    </h2>
+                    <p class="text-cyan-300/80 text-sm md:text-base">เลือกโหมดเกม และคลังคำศัพท์เพื่อเริ่มฝึกฝนความเร็วในการพิมพ์</p>
+                </div>
+
+                <!-- Mode Selection Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div id="modeDefense" onclick="selectMode('defense')" class="mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-cyan-400 box-glow-cyan transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <div class="absolute -right-4 -bottom-4 text-cyan-500/10 group-hover:text-cyan-500/20 transition-all">
+                            <i data-lucide="shield-alert" class="w-28 h-28"></i>
+                        </div>
+                        <div class="flex items-center gap-3 text-cyan-400 mb-2">
+                            <i data-lucide="crosshair" class="w-6 h-6"></i>
+                            <h3 class="font-cyber font-bold text-lg">ARCADE DEFENSE</h3>
+                        </div>
+                        <p class="text-xs text-slate-300">ยิงทำลายคำศัพท์ที่ลอยลงมาก่อนจะชนแนวป้องกัน!</p>
+                    </div>
+
+                    <div id="modeTimeAttack" onclick="selectMode('timeAttack')" class="mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-slate-700 hover:border-yellow-400 transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <div class="absolute -right-4 -bottom-4 text-yellow-500/10 group-hover:text-yellow-500/20 transition-all">
+                            <i data-lucide="zap" class="w-28 h-28"></i>
+                        </div>
+                        <div class="flex items-center gap-3 text-yellow-400 mb-2">
+                            <i data-lucide="timer" class="w-6 h-6"></i>
+                            <h3 class="font-cyber font-bold text-lg">TIME BLITZ</h3>
+                        </div>
+                        <p class="text-xs text-slate-300">พิมพ์คำศัพท์แข่งกับเวลา 60 วินาที เพื่อสร้างสถิติสูงสุด!</p>
+                    </div>
+
+                    <div id="modeBoss" onclick="selectMode('boss')" class="mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-slate-700 hover:border-pink-500 transition-all transform hover:-translate-y-1 relative overflow-hidden group">
+                        <div class="absolute -right-4 -bottom-4 text-pink-500/10 group-hover:text-pink-500/20 transition-all">
+                            <i data-lucide="skull" class="w-28 h-28"></i>
+                        </div>
+                        <div class="flex items-center gap-3 text-pink-500 mb-2">
+                            <i data-lucide="swords" class="w-6 h-6"></i>
+                            <h3 class="font-cyber font-bold text-lg">BOSS OVERLORD</h3>
+                        </div>
+                        <p class="text-xs text-slate-300">ต่อสู้กับบอสทรงพลังด้วยประโยคยาวและโค้ดโปรแกรมมิ่ง!</p>
+                    </div>
+                </div>
+
+                <!-- Word Category & Difficulty Selection -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-cyber text-cyan-400 mb-2 flex items-center gap-1.5">
+                            <i data-lucide="book-open" class="w-4 h-4"></i> WORD CATEGORY / หมวดหมู่คำศัพท์
+                        </label>
+                        <select id="selectCategory" class="w-full bg-slate-950 text-cyan-300 border border-cyan-500/50 rounded-xl p-3 focus:outline-none focus:border-cyan-400 font-mono text-sm">
+                            <option value="thai_common">🇹🇭 คำไทยใช้บ่อย (Common Thai Words)</option>
+                            <option value="thai_sentences">🇹🇭 ประโยคและสำนวนไทย (Thai Phrases & Quotes)</option>
+                            <option value="english_common" selected>🇬🇧 English Core Vocabulary (Top 1000)</option>
+                            <option value="programming">💻 Programming & Tech Jargon (C#, JS, SQL, DevOps)</option>
+                            <option value="mixed">⚡ Mixed Masters (ผสมทุกหมวดหมู่)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-cyber text-cyan-400 mb-2 flex items-center gap-1.5">
+                            <i data-lucide="gauge" class="w-4 h-4"></i> DIFFICULTY LEVEL / ระดับความยาก
+                        </label>
+                        <select id="selectDifficulty" class="w-full bg-slate-950 text-cyan-300 border border-cyan-500/50 rounded-xl p-3 focus:outline-none focus:border-cyan-400 font-mono text-sm">
+                            <option value="easy">EASY (คำสั้น ความเร็วปกติ)</option>
+                            <option value="medium" selected>MEDIUM (มาตรฐาน มีความท้าทาย)</option>
+                            <option value="hard">HARD (คำยาว/ซับซ้อน ความเร็วสูง)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Start Button -->
+                <button id="btnStartGame" onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-cyan-500 via-teal-400 to-pink-500 hover:from-cyan-400 hover:to-pink-400 text-slate-950 font-cyber font-black text-xl rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                    <i data-lucide="play" class="w-6 h-6 fill-current"></i> START MISSION
+                </button>
+            </div>
+
+            <!-- 2. GAMEPLAY DISPLAY CANVAS CONTAINER -->
+            <div id="screenGame" class="hidden absolute inset-0 flex flex-col justify-between pointer-events-none">
+
+                <!-- Boss Health Bar Container (For Boss Mode) -->
+                <div id="bossContainer" class="hidden pointer-events-auto bg-slate-900/90 border border-pink-500/50 p-4 rounded-2xl mx-auto max-w-2xl w-full box-glow-magenta mb-4 mt-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <span id="bossName" class="font-cyber font-bold text-pink-500 flex items-center gap-2">
+                            <i data-lucide="bot" class="w-5 h-5"></i> CYBER-OVERLORD AI
+                        </span>
+                        <span id="bossHpText" class="font-mono text-xs text-pink-300">1000 / 1000 HP</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-4 rounded-full overflow-hidden border border-pink-500/30">
+                        <div id="bossHpBar" class="bg-gradient-to-r from-pink-600 to-red-500 h-full w-full transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Time Attack Timer Display -->
+                <div id="timeAttackContainer" class="hidden pointer-events-auto text-center mx-auto mb-2 mt-2 bg-slate-900/80 px-6 py-2 rounded-full border border-yellow-500/50 box-glow-cyan">
+                    <span class="text-xs text-yellow-400 font-cyber mr-2">TIME REMAINING:</span>
+                    <span id="timeAttackTimer" class="text-3xl font-mono font-bold text-yellow-300">60</span><span class="text-xs text-yellow-500">s</span>
+                </div>
+
+                <!-- Laser Defense Line (for Arcade Mode) -->
+                <div id="defenseLine" class="hidden absolute bottom-28 left-0 w-full h-1 defense-line z-10"></div>
+            </div>
+
+            <!-- 3. END GAME SUMMARY MODAL -->
+            <div id="screenEnd" class="hidden w-full max-w-2xl bg-slate-900/95 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-pink-500/50 box-glow-magenta z-50 text-center space-y-6">
+                <div>
+                    <h2 id="endTitle" class="text-4xl font-black font-cyber text-pink-500 glow-magenta mb-1">MISSION COMPLETED</h2>
+                    <p id="endSubtitle" class="text-cyan-300 text-sm">สรุปผลการฝึกพิมพ์และสถิติของคุณ</p>
+                </div>
+
+                <!-- Player Rank Badge -->
+                <div class="bg-slate-950/80 rounded-2xl p-4 border border-cyan-500/30 inline-block px-8">
+                    <span class="text-xs text-slate-400 font-cyber block mb-1">PLAYER RANK EVALUATION</span>
+                    <span id="rankBadge" class="text-2xl font-black font-cyber text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-cyan-400">
+                        CYBER MONK
+                    </span>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono">
+                    <div class="bg-slate-800/60 p-3 rounded-xl border border-cyan-500/20">
+                        <span class="text-xs text-slate-400 block font-cyber">FINAL WPM</span>
+                        <span id="endWpm" class="text-2xl font-bold text-cyan-400">0</span>
+                    </div>
+                    <div class="bg-slate-800/60 p-3 rounded-xl border border-cyan-500/20">
+                        <span class="text-xs text-slate-400 block font-cyber">ACCURACY</span>
+                        <span id="endAccuracy" class="text-2xl font-bold text-emerald-400">0%</span>
+                    </div>
+                    <div class="bg-slate-800/60 p-3 rounded-xl border border-cyan-500/20">
+                        <span class="text-xs text-slate-400 block font-cyber">MAX COMBO</span>
+                        <span id="endMaxCombo" class="text-2xl font-bold text-pink-400">0x</span>
+                    </div>
+                    <div class="bg-slate-800/60 p-3 rounded-xl border border-cyan-500/20">
+                        <span class="text-xs text-slate-400 block font-cyber">TOTAL SCORE</span>
+                        <span id="endScore" class="text-2xl font-bold text-yellow-400">0</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4 pt-2">
+                    <button onclick="returnToMenu()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 rounded-xl font-cyber text-sm transition-all flex items-center gap-2">
+                        <i data-lucide="menu" class="w-4 h-4"></i> MAIN MENU
+                    </button>
+                    <button onclick="startGame()" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-pink-500 hover:from-cyan-400 hover:to-pink-400 text-slate-950 font-black font-cyber rounded-xl text-sm transition-all flex items-center gap-2">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> REPLAY
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- BOTTOM KEYBOARD / INPUT INTERFACE CONTAINER -->
+        <footer id="typingInputContainer" class="hidden bg-slate-900/90 backdrop-blur-md rounded-2xl p-4 border border-cyan-500/40 box-glow-cyan flex flex-col gap-3">
+            <!-- Realtime Character Highlighting Text Box -->
+            <div class="bg-slate-950 rounded-xl p-4 border border-cyan-500/30 flex justify-center items-center min-h-[64px] relative overflow-hidden">
+                <div id="targetWordDisplay" class="font-mono text-2xl md:text-3xl font-bold tracking-wider text-center break-all">
+                    <span class="text-slate-500">Waiting for mission start...</span>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        /* ------------------------------------------------------------------
+           1. MASSIVE WORD BANKS (Thai, English, Programming Jargon)
+           ------------------------------------------------------------------ */
+        const WORD_BANKS = {
+            thai_common: [
+                "พัฒนา", "ระบบ", "โปรแกรม", "คอมพิวเตอร์", "ข้อมูล", "เทคโนโลยี", "อนาคต", "นวัตกรรม",
+                "เครือข่าย", "ความปลอดภัย", "ฐานข้อมูล", "ความเร็ว", "การพิมพ์", "สัมผัส", "ปัญญาประดิษฐ์",
+                "เรียนรู้", "ทักษะ", "ประสบการณ์", "ความสำเร็จ", "สร้างสรรค์", "การสื่อสาร", "ออนไลน์",
+                "ซอฟต์แวร์", "ฮาร์ดแวร์", "การทดสอบ", "ประมวลผล", "ประสิทธิภาพ", "แอปพลิเคชัน", "คลาวด์",
+                "ดิจิทัล", "วิเคราะห์", "โครงสร้าง", "อัลกอริทึม", "เชื่อมโยง", "ผู้ใช้งาน", "ออกแบบ"
+            ],
+            thai_sentences: [
+                "การฝึกพิมพ์สัมผัสช่วยเพิ่มประสิทธิภาพในการทำงานอย่างมหาศาล",
+                "เทคโนโลยีปัญญาประดิษฐ์กำลังเข้ามามีบทบาทในชีวิตประจำวัน",
+                "การเขียนโค้ดที่มีคุณภาพต้องคำนึงถึงอ่านง่ายและดูแลรักษาง่าย",
+                "ความพยายามและความสม่ำเสมอคือหัวใจสำคัญของการพัฒนาทักษะ",
+                "ระบบเครือข่ายไร้สายช่วยให้การสื่อสารไร้พรมแดนอย่างแท้จริง"
+            ],
+            english_common: [
+                "algorithm", "bandwidth", "cybersecurity", "database", "encryption", "framework",
+                "graphics", "hardware", "interface", "javascript", "kernel", "latency", "microservice",
+                "network", "optimization", "protocol", "quantum", "repository", "software", "terminal",
+                "universe", "virtualization", "wireless", "execution", "yield", "zero-day", "architecture",
+                "benchmark", "component", "deployment", "efficiency", "functionality", "generation"
+            ],
+            programming: [
+                "public async Task<IActionResult> GetData()",
+                "const [state, setState] = useState(null);",
+                "SELECT * FROM Users WHERE IsActive = 1;",
+                "git commit -m 'feat: implement cyber typing engine'",
+                "docker-compose up -d --build",
+                "npm install tailwindcss lucide-react",
+                "System.Threading.Tasks.Parallel.ForEach",
+                "margin: 0 auto; display: flex; flex-direction: column;",
+                "try { await fetch(url); } catch (error) { console.error(error); }"
+            ],
+            mixed: []
+        };
+        WORD_BANKS.mixed = [...WORD_BANKS.thai_common, ...WORD_BANKS.english_common, ...WORD_BANKS.programming];
+
+        /* ------------------------------------------------------------------
+           2. WEB AUDIO API SYNTHESIZER
+           ------------------------------------------------------------------ */
+        class AudioSynthesizer {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playKeySound() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600 + Math.random() * 200, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playHitSound() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playErrorSound() {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(100, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playExplosionSound() {
+                if (this.muted || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.4;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.4);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            }
+        }
+
+        const audio = new AudioSynthesizer();
+
+        /* ------------------------------------------------------------------
+           3. CANVAS PARTICLE & LASER VISUAL ENGINE
+           ------------------------------------------------------------------ */
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let particles = [];
+        let laserBeams = [];
+        let floatingTexts = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.z = Math.random() * canvas.width;
+                this.size = Math.random() * 2 + 1;
+                this.speed = Math.random() * 2 + 1;
+                this.color = Math.random() > 0.5 ? '#00f0ff' : '#ff007f';
+            }
+            update() {
+                this.z -= this.speed;
+                if (this.z <= 0) this.reset();
+            }
+            draw() {
+                const sx = (this.x - canvas.width / 2) * (canvas.width / this.z) + canvas.width / 2;
+                const sy = (this.y - canvas.height / 2) * (canvas.width / this.z) + canvas.height / 2;
+                const size = (this.size * (canvas.width / this.z)) * 0.5;
+
+                if (sx >= 0 && sx <= canvas.width && sy >= 0 && sy <= canvas.height) {
+                    ctx.beginPath();
+                    ctx.fillStyle = this.color;
+                    ctx.arc(sx, sy, Math.max(0.5, size), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        for (let i = 0; i < 200; i++) particles.push(new Particle());
+
+        function createLaser(startX, startY, targetX, targetY) {
+            laserBeams.push({
+                sx: startX, sy: startY, tx: targetX, ty: targetY,
+                life: 1.0, color: '#00f0ff'
+            });
+        }
+
+        function createFloatingText(text, x, y, color = '#ff007f') {
+            floatingTexts.push({
+                text, x, y, opacity: 1.0, color
+            });
+        }
+
+        function animateCanvas() {
+            ctx.fillStyle = 'rgba(5, 8, 17, 0.25)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => { p.update(); p.draw(); });
+
+            laserBeams.forEach((l, idx) => {
+                ctx.beginPath();
+                ctx.moveTo(l.sx, l.sy);
+                ctx.lineTo(l.tx, l.ty);
+                ctx.strokeStyle = l.color;
+                ctx.lineWidth = 3 * l.life;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = l.color;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                l.life -= 0.08;
+                if (l.life <= 0) laserBeams.splice(idx, 1);
+            });
+
+            floatingTexts.forEach((ft, idx) => {
+                ctx.font = 'bold 20px Orbitron';
+                ctx.fillStyle = ft.color;
+                ctx.globalAlpha = ft.opacity;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.globalAlpha = 1.0;
+                ft.y -= 1.5;
+                ft.opacity -= 0.02;
+                if (ft.opacity <= 0) floatingTexts.splice(idx, 1);
+            });
+
+            if (gameState.activeMode === 'defense' && gameState.isRunning) {
+                renderArcadeWords();
+            }
+
+            requestAnimationFrame(animateCanvas);
+        }
+
+        /* ------------------------------------------------------------------
+           4. GAME STATE MANAGEMENT & LOGIC
+           ------------------------------------------------------------------ */
+        const gameState = {
+            activeMode: 'defense',
+            category: 'english_common',
+            difficulty: 'medium',
+            isRunning: false,
+            score: 0,
+            combo: 0,
+            maxCombo: 0,
+            correctChars: 0,
+            totalCharsTyped: 0,
+            startTime: null,
+            timer: 60,
+            timerInterval: null,
+            fallingWords: [],
+            currentWord: "",
+            typedInput: "",
+            bossHp: 1000,
+            bossMaxHp: 1000
+        };
+
+        function selectMode(mode) {
+            gameState.activeMode = mode;
+            
+            // Reset borders for all mode cards
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.className = "mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-slate-700 transition-all transform hover:-translate-y-1 relative overflow-hidden group";
+            });
+
+            // Highlight chosen card
+            if (mode === 'defense') {
+                document.getElementById('modeDefense').className = "mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-cyan-400 box-glow-cyan transition-all transform hover:-translate-y-1 relative overflow-hidden group";
+            } else if (mode === 'timeAttack') {
+                document.getElementById('modeTimeAttack').className = "mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-yellow-400 box-glow-cyan transition-all transform hover:-translate-y-1 relative overflow-hidden group";
+            } else if (mode === 'boss') {
+                document.getElementById('modeBoss').className = "mode-card cursor-pointer bg-slate-800/80 hover:bg-slate-700/80 p-5 rounded-2xl border-2 border-pink-500 box-glow-magenta transition-all transform hover:-translate-y-1 relative overflow-hidden group";
+            }
+        }
+
+        function startGame() {
+            audio.init();
+            
+            gameState.category = document.getElementById('selectCategory').value;
+            gameState.difficulty = document.getElementById('selectDifficulty').value;
+            
+            gameState.score = 0;
+            gameState.combo = 0;
+            gameState.maxCombo = 0;
+            gameState.correctChars = 0;
+            gameState.totalCharsTyped = 0;
+            gameState.startTime = Date.now();
+            gameState.fallingWords = [];
+            gameState.typedInput = "";
+            gameState.isRunning = true;
+
+            // Clear previous intervals if any
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+
+            // Screen visibility fixes
+            document.getElementById('screenMenu').classList.add('hidden');
+            document.getElementById('screenEnd').classList.add('hidden');
+            document.getElementById('screenGame').classList.remove('hidden');
+            document.getElementById('hudStats').classList.remove('hidden');
+            document.getElementById('typingInputContainer').classList.remove('hidden');
+
+            updateHUD();
+
+            if (gameState.activeMode === 'defense') {
+                document.getElementById('defenseLine').classList.remove('hidden');
+                document.getElementById('bossContainer').classList.add('hidden');
+                document.getElementById('timeAttackContainer').classList.add('hidden');
+                spawnArcadeWord();
+            } else if (gameState.activeMode === 'timeAttack') {
+                document.getElementById('defenseLine').classList.add('hidden');
+                document.getElementById('bossContainer').classList.add('hidden');
+                document.getElementById('timeAttackContainer').classList.remove('hidden');
+                gameState.timer = 60;
+                document.getElementById('timeAttackTimer').innerText = gameState.timer;
+                gameState.timerInterval = setInterval(() => {
+                    gameState.timer--;
+                    document.getElementById('timeAttackTimer').innerText = gameState.timer;
+                    if (gameState.timer <= 0) endGame(true);
+                }, 1000);
+                loadNextWord();
+            } else if (gameState.activeMode === 'boss') {
+                document.getElementById('defenseLine').classList.add('hidden');
+                document.getElementById('bossContainer').classList.remove('hidden');
+                document.getElementById('timeAttackContainer').classList.add('hidden');
+                gameState.bossMaxHp = 1000;
+                gameState.bossHp = 1000;
+                updateBossHpUI();
+                loadNextWord();
+            }
+
+            renderTargetWordDisplay();
+        }
+
+        function getRandomWord() {
+            const list = WORD_BANKS[gameState.category] || WORD_BANKS.english_common;
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function loadNextWord() {
+            gameState.currentWord = getRandomWord();
+            gameState.typedInput = "";
+            renderTargetWordDisplay();
+        }
+
+        function spawnArcadeWord() {
+            if (!gameState.isRunning) return;
+            const word = getRandomWord();
+            const speed = gameState.difficulty === 'easy' ? 0.8 : gameState.difficulty === 'medium' ? 1.3 : 1.9;
+            gameState.fallingWords.push({
+                id: Math.random().toString(36).substr(2, 9),
+                word: word,
+                x: Math.random() * (canvas.width - 250) + 100,
+                y: -30,
+                speed: speed
+            });
+        }
+
+        function renderArcadeWords() {
+            const lineY = canvas.height - 120;
+            gameState.fallingWords.forEach((fw, index) => {
+                fw.y += fw.speed;
+
+                ctx.font = 'bold 22px "JetBrains Mono"';
+                const textWidth = ctx.measureText(fw.word).width;
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                ctx.strokeStyle = '#00f0ff';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(fw.x - 10, fw.y - 25, textWidth + 20, 35, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                if (gameState.typedInput && fw.word.startsWith(gameState.typedInput)) {
+                    const matchedText = gameState.typedInput;
+                    const remainingText = fw.word.substring(matchedText.length);
+
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillText(matchedText, fw.x, fw.y);
+
+                    const matchedWidth = ctx.measureText(matchedText).width;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(remainingText, fw.x + matchedWidth, fw.y);
+                } else {
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.fillText(fw.word, fw.x, fw.y);
+                }
+
+                if (fw.y >= lineY) {
+                    audio.playErrorSound();
+                    triggerScreenShake();
+                    gameState.combo = 0;
+                    createFloatingText("DEFENSE BREACH!", fw.x, fw.y, "#ff0055");
+                    gameState.fallingWords.splice(index, 1);
+                    updateHUD();
+                }
+            });
+
+            if (Math.random() < 0.015 && gameState.fallingWords.length < 5) {
+                spawnArcadeWord();
+            }
+        }
+
+        /* ------------------------------------------------------------------
+           5. KEYBOARD INPUT PROCESSING
+           ------------------------------------------------------------------ */
+        window.addEventListener('keydown', (e) => {
+            if (!gameState.isRunning) return;
+
+            if (e.key === 'Backspace') {
+                gameState.typedInput = gameState.typedInput.slice(0, -1);
+                renderTargetWordDisplay();
+                return;
+            }
+
+            if (e.key.length === 1) {
+                audio.playKeySound();
+                gameState.totalCharsTyped++;
+
+                const char = e.key;
+
+                if (gameState.activeMode === 'defense') {
+                    gameState.typedInput += char;
+
+                    let matchedIdx = gameState.fallingWords.findIndex(fw => fw.word === gameState.typedInput);
+                    if (matchedIdx !== -1) {
+                        const target = gameState.fallingWords[matchedIdx];
+                        audio.playHitSound();
+                        createLaser(canvas.width / 2, canvas.height - 50, target.x, target.y);
+                        createFloatingText("+100 PTS", target.x, target.y, "#00f0ff");
+
+                        gameState.score += 100 * Math.max(1, gameState.combo);
+                        gameState.combo++;
+                        if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+                        gameState.correctChars += target.word.length;
+
+                        gameState.fallingWords.splice(matchedIdx, 1);
+                        gameState.typedInput = "";
+                        spawnArcadeWord();
+                    }
+                } else {
+                    gameState.typedInput += char;
+                    const targetWord = gameState.currentWord;
+
+                    if (targetWord.startsWith(gameState.typedInput)) {
+                        gameState.correctChars++;
+                        if (gameState.typedInput === targetWord) {
+                            audio.playHitSound();
+                            gameState.score += 150 * Math.max(1, gameState.combo);
+                            gameState.combo++;
+                            if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+
+                            if (gameState.activeMode === 'boss') {
+                                const damage = targetWord.length * 25;
+                                gameState.bossHp = Math.max(0, gameState.bossHp - damage);
+                                updateBossHpUI();
+                                createFloatingText(`-${damage} HP`, canvas.width / 2, 120, "#ff007f");
+
+                                if (gameState.bossHp <= 0) {
+                                    audio.playExplosionSound();
+                                    endGame(true);
+                                    return;
+                                }
+                            }
+
+                            loadNextWord();
+                        }
+                    } else {
+                        audio.playErrorSound();
+                        gameState.combo = 0;
+                    }
+                }
+
+                updateHUD();
+                renderTargetWordDisplay();
+            }
+        });
+
+        function renderTargetWordDisplay() {
+            const container = document.getElementById('targetWordDisplay');
+            if (gameState.activeMode === 'defense') {
+                container.innerHTML = `<span class="text-cyan-400 font-mono">TYPING TARGET: </span><span class="text-yellow-300 font-mono">${gameState.typedInput}</span><span class="animate-pulse text-cyan-400">|</span>`;
+                return;
+            }
+
+            const target = gameState.currentWord;
+            const typed = gameState.typedInput;
+
+            let html = "";
+            for (let i = 0; i < target.length; i++) {
+                if (i < typed.length) {
+                    if (typed[i] === target[i]) {
+                        html += `<span class="text-emerald-400 border-b-2 border-emerald-400">${target[i]}</span>`;
+                    } else {
+                        html += `<span class="text-red-500 bg-red-950/50 rounded px-0.5">${target[i]}</span>`;
+                    }
+                } else if (i === typed.length) {
+                    html += `<span class="text-yellow-300 bg-yellow-500/20 rounded px-0.5 animate-pulse">${target[i]}</span>`;
+                } else {
+                    html += `<span class="text-slate-400">${target[i]}</span>`;
+                }
+            }
+            container.innerHTML = html;
+        }
+
+        function updateHUD() {
+            const elapsedMinutes = Math.max(0.01, (Date.now() - gameState.startTime) / 60000);
+            const wpm = Math.round((gameState.correctChars / 5) / elapsedMinutes);
+            const accuracy = gameState.totalCharsTyped > 0 
+                ? Math.round((gameState.correctChars / gameState.totalCharsTyped) * 100) 
+                : 100;
+
+            document.getElementById('hudWpm').innerText = wpm;
+            document.getElementById('hudAccuracy').innerText = accuracy + '%';
+            document.getElementById('hudScore').innerText = gameState.score;
+            document.getElementById('hudCombo').innerText = 'x' + gameState.combo;
+        }
+
+        function updateBossHpUI() {
+            const pct = (gameState.bossHp / gameState.bossMaxHp) * 100;
+            document.getElementById('bossHpBar').style.width = `${pct}%`;
+            document.getElementById('bossHpText').innerText = `${gameState.bossHp} / ${gameState.bossMaxHp} HP`;
+        }
+
+        function triggerScreenShake() {
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 250);
+        }
+
+        function endGame(victory = true) {
+            gameState.isRunning = false;
+            clearInterval(gameState.timerInterval);
+
+            const elapsedMinutes = Math.max(0.01, (Date.now() - gameState.startTime) / 60000);
+            const wpm = Math.round((gameState.correctChars / 5) / elapsedMinutes);
+            const accuracy = gameState.totalCharsTyped > 0 
+                ? Math.round((gameState.correctChars / gameState.totalCharsTyped) * 100) 
+                : 100;
+
+            document.getElementById('endTitle').innerText = victory ? "MISSION COMPLETED" : "SYSTEM FAILURE";
+            document.getElementById('endWpm').innerText = wpm;
+            document.getElementById('endAccuracy').innerText = accuracy + '%';
+            document.getElementById('endMaxCombo').innerText = gameState.maxCombo + 'x';
+            document.getElementById('endScore').innerText = gameState.score;
+
+            let rank = "NOVICE TYPIST";
+            if (wpm > 90) rank = "GOD SPEED TYPIST ⚡";
+            else if (wpm > 65) rank = "CYBER MONK 🧘";
+            else if (wpm > 40) rank = "CODE WARRIOR ⚔️";
+            document.getElementById('rankBadge').innerText = rank;
+
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('typingInputContainer').classList.add('hidden');
+            document.getElementById('screenEnd').classList.remove('hidden');
+        }
+
+        function returnToMenu() {
+            gameState.isRunning = false;
+            clearInterval(gameState.timerInterval);
+            document.getElementById('screenEnd').classList.add('hidden');
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('hudStats').classList.add('hidden');
+            document.getElementById('typingInputContainer').classList.add('hidden');
+            document.getElementById('screenMenu').classList.remove('hidden');
+        }
+
+        document.getElementById('btnSoundToggle').addEventListener('click', () => {
+            audio.muted = !audio.muted;
+            document.getElementById('soundIcon').setAttribute('data-lucide', audio.muted ? 'volume-x' : 'volume-2');
+            lucide.createIcons();
+        });
+
+        window.onload = function() {
+            lucide.createIcons();
+            animateCanvas();
+        };
+    </script>
+</body>
+</html>
