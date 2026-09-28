@@ -228,6 +228,7 @@
     combo:(n)=>beep(600+n*60,.1,'triangle',.14,200),
     boost:()=>beep(300,.3,'sawtooth',.16,400),
     shield:()=>beep(300,.2,'triangle',.18,-100),
+    power:()=>beep(520,.2,'triangle',.15,250),
     hit:()=>{beep(160,.25,'sawtooth',.2,-80); beep(90,.3,'square',.15,-40);},
     stage:()=>{beep(440,.1,'sine',.14,200); setTimeout(()=>beep(660,.12,'sine',.14,200),100); setTimeout(()=>beep(880,.15,'sine',.14,200),200);},
     over:()=>beep(400,.4,'sawtooth',.18,-300),
@@ -456,7 +457,7 @@
     player.x=W*0.25; player.y=GROUND(); player.vy=0; player.onGround=true;
     player.jumps=0; player.sliding=false; player.slideT=0; player.runPhase=0; player.rot=0; player.rotV=0;
     const pet=getPet(selPet);
-    if(pet && pet.bonus==='life') S.lives=4;
+    if(pet && pet.bonus==='life') S.lives=3 + (pet.val || 1);
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOverScreen').classList.add('hidden');
     document.getElementById('pauseScreen').classList.add('hidden');
@@ -653,7 +654,7 @@
       const magnetOn = S.magnetT>0 || (getPet(selPet) && getPet(selPet).bonus==='magnet');
       if(magnetOn){
         const d=Math.hypot(player.x-l.x,player.y-l.y);
-        if(d<150){ l.x+=(player.x-l.x)*8*dt; l.y+=(player.y-l.y)*8*dt; }
+        if(d<200){ l.x+=(player.x-l.x)*10*dt; l.y+=(player.y-l.y)*10*dt; }
       }
       if(Math.hypot(player.x-l.x,(player.y-30)-l.y)<55){
         S.combo++; S.maxCombo=Math.max(S.maxCombo,S.combo);
@@ -683,7 +684,8 @@
           spawnParticles(p.x,p.y,'#a855f7',18,5);
           if(p.type==='boost'){
             const pet=getPet(selPet);
-            S.boostT = (pet && pet.bonus==='boost') ? 4*pet.val : 4;
+            const duration = (pet && pet.bonus==='boost') ? 4*(pet.val||1) : 4;
+            S.boostT = duration;
             sfx.boost();
             addPopup('⚡ บูสต์!', '#ffd23f');
           }
@@ -864,6 +866,17 @@
   });
 
   // ---------- Render ----------
+  function drawHeartsOverHead(x, y){
+    ctx.save();
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    let heartsStr = '';
+    for(let i=0; i<S.lives; i++) heartsStr += '❤️';
+    glow('#ff5c5c', 10);
+    ctx.fillText(heartsStr, x, y - 75);
+    ctx.restore();
+  }
+
   function drawKoala(x,y,sliding,runPhase,onGround,rot){
     const c=getCostume(selCostume);
     ctx.save();
@@ -1063,6 +1076,7 @@
       ctx.globalAlpha=1;
     }
 
+    drawHeartsOverHead(player.x, player.y);
     drawPet();
     drawKoala(player.x,player.y,player.sliding,player.runPhase,player.onGround,player.rot);
 
